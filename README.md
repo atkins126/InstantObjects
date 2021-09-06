@@ -1,10 +1,10 @@
-# **InstantObjects for Delphi** [![License](https://img.shields.io/badge/License-Mozilla%202.0-yellowgreen.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
+# **InstantObjects 3.0 for Delphi** [![License](https://img.shields.io/badge/License-Mozilla%202.0-yellowgreen.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
 
 ![InstantObject Logo](https://github.com/EtheaDev/InstantObjects/wiki/instantobjects_logo.gif)
 
-Welcome to InstantObjects, the integrated framework for developing object-oriented business solutions in Delphi (from 2010 to 10.4 Sydney version)
+Welcome to InstantObjects, the integrated framework for developing object-oriented business solutions in Delphi (from 2010 to 11.0 Olympus version)
 
-![Delphi10.4Sydney Support](https://github.com/EtheaDev/InstantObjects/wiki/SupportingDelphi10.4Sydney_small.jpg)
+![Delphi10.4Sydney Support](https://github.com/EtheaDev/InstantObjects/wiki/SupportingDelphi.jpg)
 
 Related links: https://www.embarcadero.com/ - https://learndelphi.org/
 
@@ -38,10 +38,26 @@ InstantObjects source files are released under the Mozilla Public License Versio
 
 [www.mozilla.org/en-US/MPL/2.0/](https://www.mozilla.org/en-US/MPL/2.0/)
 
+**Full DUnitX Tests**
+
+InstantObjects contains over 400 Tests written for DUnitX framework. From 3.0 version is also compatible with TestInsight test framework.
+![TestInsight Running](/Tests/TestInsightRunning.png)
+
+
 **Release Notes**
 
 VERSION HISTORY
 ---------------
+Version 3.0 (3.0.0.0) (2021-08-27)
+- Added support for Delphi 11.0 Olympus
+- Updated Test Framework to DUnitX / TestInsight (only for D10.2, D10.3, D10.4, D11.0)
+
+Version 2.10 (2.10.0.0) (2021-03-29)
+- Fixed InstantDBX for compilation with IO_CONSOLE directive
+- Fixed FireDAC Broker for EncryptedPassword
+- Added OnIdChanged for TInstantObject class
+- Added Isolation property to FireDAC Broker
+
 Version 2.9 (2.9.0.0) (2021-01-24)
 - Added support delphi-NEON library
   for serialization/deserialization of objects
