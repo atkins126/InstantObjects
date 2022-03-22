@@ -589,13 +589,14 @@ function TInstantDBXBroker.Execute(const AStatement: string;
 var
   LQuery: TSQLQuery;
 begin
+  Result := 0;
   LQuery := AcquireDataSet(AStatement, AParams, OnAssignParamValue) as TSQLQuery;
   try try
     Result := LQuery.ExecSQL;
   except
     on E: Exception do
       raise EInstantError.CreateFmt(SSQLExecuteError,
-        [AStatement, E.Message], E);
+        [AStatement, GetParamsStr(AParams), E.Message], E);
   end;
   finally
     ReleaseDataSet(LQuery);

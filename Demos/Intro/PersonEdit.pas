@@ -12,6 +12,7 @@ type
     ContactExposerDateOfBirth: TDateTimeField;
     Label6: TLabel;
     DBEdit5: TDBEdit;
+    DateTimePicker1: TDateTimePicker;
   private
     { Private declarations }
   public

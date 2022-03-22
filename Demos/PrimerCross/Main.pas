@@ -10,7 +10,7 @@ uses
   Menus, ExtCtrls, ComCtrls, ToolWin, Grids, DBGrids, ImgList, ActnList,
   InstantPersistence, BasicView, Stopwatch,
   InstantConnectionManagerFormUnit, InstantConnectionManager,
-  {$IFDEF D17+}System.Actions,{$ENDIF}
+  System.Actions, //if don't compile, remove this unit
   WideStrings, SqlExpr;
 
 type
@@ -133,7 +133,8 @@ uses
   {$IFNDEF VER130}
   InstantDBX,
   {$ENDIF}
-  InstantADO, InstantIBX,
+  InstantADO,
+  //InstantIBX, remome comment if you want to use IbExpress
   {$IFDEF D19+}
   InstantFireDAC,
   {$ENDIF}
@@ -322,15 +323,6 @@ begin
     if not WasConnected then
       Connector.Connect;
     try
-      Connector.StartTransaction;
-      try
-        CreateCountries;
-        CreateCategories;
-        Connector.CommitTransaction;
-      except
-        Connector.RollbackTransaction;
-        raise;
-      end;
       if Confirm('Create random data?') then
         RandomDataActionExecute(nil);
     finally
@@ -623,15 +615,45 @@ end;
 
 procedure TMainForm.RandomDataActionExecute(Sender: TObject);
 var
-  LoadPictures : boolean;
+  LLoadPictures: boolean;
+  LInstantQuery:  TInstantQuery;
+  LCountry: TCountry;
 begin
   with TDemoDataRequestForm.Create(nil) do
   try
     Count := 100;
     if ShowModal = mrOk then
     begin
-      LoadPictures := PicturesCheckBox.Checked;
-      CreateRandomContacts(Count, LoadPictures);
+      LLoadPictures := PicturesCheckBox.Checked;
+      Connector.StartTransaction;
+      try
+        LInstantQuery := Connector.CreateQuery;
+        try
+          LInstantQuery.Command := 'SELECT * FROM TCountry';
+          LInstantQuery.Open;
+          for var I := 0 to LInstantQuery.ObjectCount - 1 do
+          begin
+            LCountry := LInstantQuery.Objects[I] as TCountry;
+            LCountry.Name := Uppercase(LCountry.Name);
+            LCountry.Store;
+          end;
+
+          if LInstantQuery.ObjectCount = 0 then
+            CreateCountries;
+
+          LInstantQuery.Command := 'SELECT * FROM TCategory';
+          LInstantQuery.Open;
+          if LInstantQuery.ObjectCount = 0 then
+            CreateCategories;
+        finally
+          LInstantQuery.Free;
+        end;
+        Connector.CommitTransaction;
+      except
+        Connector.RollbackTransaction;
+        raise;
+      end;
+      CreateRandomContacts(Count, LLoadPictures);
       Reset;
     end;
   finally

@@ -1,15 +1,4 @@
 <TInstantConnectionDefs>
-  <TInstantIBXConnectionDef>
-    <Name>IBX_Firebird</Name>
-    <IsBuilt>TRUE</IsBuilt>
-    <BlobStreamFormat>sfXML</BlobStreamFormat>
-    <LoginPrompt>FALSE</LoginPrompt>
-    <ConnectionString>127.0.0.1:{app}\FirebirdDB\PRIMERDB.FDB</ConnectionString>
-    <Options></Options>
-    <Params>user_name=SYSDBA
-password=masterkey
-lc_ctype=ISO8859_1</Params>
-  </TInstantIBXConnectionDef>
   <TInstantXMLConnectionDef>
     <Name>XmlDB</Name>
     <IsBuilt>TRUE</IsBuilt>
@@ -43,7 +32,7 @@ Trim Char=False
     <IsBuilt>TRUE</IsBuilt>
     <BlobStreamFormat>sfXML</BlobStreamFormat>
     <LoginPrompt>FALSE</LoginPrompt>
-    <Database>{app}\FirebirdDB\PRIMERDB.FDB</Database>
+    <Database>PRIMERDB</Database>
     <HostName>127.0.0.1</HostName>
     <Password>masterkey</Password>
     <DriverId>FB</DriverId>
@@ -74,7 +63,7 @@ Trim Char=False
   </TInstantADOConnectionDef>
   <TInstantDBXConnectionDef>
     <Name>DBX_MSSQL</Name>
-    <IsBuilt>FALSE</IsBuilt>
+    <IsBuilt>TRUE</IsBuilt>
     <BlobStreamFormat>sfXML</BlobStreamFormat>
     <LoginPrompt>FALSE</LoginPrompt>
     <ConnectionName>MSSQLConnection</ConnectionName>

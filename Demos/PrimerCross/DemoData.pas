@@ -33,16 +33,19 @@ uses
 procedure CreateCategories;
 var
   I: Integer;
+  LCategory: TCategory;
 begin
   for I := Low(CategoryNames) to High(CategoryNames) do
-    with TCategory.Create do
+  begin
+    LCategory := TCategory.Create;
     try
-      Id := Format('CAT%.3d', [I]);
-      Name := CategoryNames[I];
-      Store;
+      LCategory.Id := Format('CAT%.3d', [I]);
+      LCategory.Name := CategoryNames[I];
+      LCategory.Store;
     finally
-      Free;
+      LCategory.Free;
     end;
+  end;
 end;
 
 procedure CreateCountries;
@@ -116,24 +119,23 @@ begin
   end;
 end;
 
-procedure CreateRandomPhones(Contact: TContact; Names: array of string);
+procedure CreateRandomPhones(AContact: TContact; ANames: array of string);
 var
   I: Integer;
-  Phone: TPhone;
+  LPhone: TPhone;
 begin
-  for I := Low(Names) to High(Names) do
-    //if Random(3) > 0 then
-    begin
-      Phone := TPhone.Create;
-      try
-        Phone.Name := Names[I];
-        Phone.Number := RandomNumber(10);
-        Contact.AddPhone(Phone);
-      except
-        Phone.Free;
-        raise;
-      end;
+  for I := Low(ANames) to High(ANames) do
+  begin
+    LPhone := TPhone.Create;
+    try
+      LPhone.Name := ANames[I];
+      LPhone.Number := RandomNumber(10);
+      AContact.AddPhone(LPhone);
+    except
+      LPhone.Free;
+      raise;
     end;
+  end;
 end;
 
 procedure CreateRandomEmails(Person: TPerson; Domains: array of string);
@@ -171,6 +173,7 @@ end;
 function CreateRandomPerson(Company: TCompany; out Gender : TGender): TPerson;
 var
   CompanyName: string;
+  LCategoryId: string;
 begin
   Result := TPerson.Create;
   try
@@ -179,8 +182,12 @@ begin
     Result.BirthDate := Date - (20 * 365 + Random(365 * 50)); // 20 - 70 years old
     Result.BirthTime := Random;
     Result.Address := CreateRandomAddress;
-//    Result.Salary := 922337203685470;
     Result.Salary := 500 + Random(5000);
+
+    LCategoryId := Format('CAT%.3d', [Random(5)+1]);
+    Result.Category := TCategory.Retrieve(LCategoryId);
+    if Assigned(Result.Category) then
+      Result.Category.Free; //dereference Retrieve
     CreateRandomPhones(Result, ['Home', 'Mobile']);
     if Assigned(Company) then
     begin
@@ -188,7 +195,7 @@ begin
       CompanyName := InstantPartStr(Company.Name, 1, ' ');
     end else
       CompanyName := LowerCase(RandomName);
-    CreateRandomEmails(Result, [CompanyName, 'hotmail']);
+    CreateRandomEmails(Result, [CompanyName, 'gmail']);
   except
     Result.Free;
     raise;

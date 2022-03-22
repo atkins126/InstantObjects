@@ -9,7 +9,7 @@ uses
   Windows, Messages, Graphics, Controls, Forms, Dialogs,
   ComCtrls, Grids, DBGrids, ExtCtrls, Buttons, ShellApi,
   StdCtrls, ActnList, ToolWin, ImgList, Menus,
-  {$IFDEF D17+}Actions,{$ENDIF}
+  System.Actions,
   BasicView, Model, InstantPresentation, InstantExplorer;
 
 type
@@ -217,6 +217,8 @@ var
   Contact: TContact;
   Index: Integer;
 begin
+  inherited DbGridDrawColumnCellFixW11(Sender, Rect, DataCol, Column, State);
+
   if gdSelected in State then
     with ContactGrid do
       if not Focused then

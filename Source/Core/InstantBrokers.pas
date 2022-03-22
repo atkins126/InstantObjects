@@ -43,6 +43,11 @@ uses
   {$ENDIF}
   InstantConsts, InstantClasses, Contnrs, InstantCommand;
 
+const
+  CLASSNAME_PARAM_SIZE = 32;
+  ConcurrencyParamName = 'IO_Concur';
+  PersistentIdParamName = 'IO_PersId';
+
 type
   TInstantBrokerCatalog = class;
   TInstantConnectionBasedConnector = class;
@@ -191,6 +196,7 @@ type
     function DataTypeToColumnType(DataType: TInstantDataType;
       Size: Integer): string; virtual; abstract;
     function FindResolver(AMap: TInstantAttributeMap): TInstantSQLResolver;
+    function GetParamsStr(AParams: TParams): string;
     class function GeneratorClass: TInstantSQLGeneratorClass; virtual;
     property Generator: TInstantSQLGenerator read GetGenerator;
     property ResolverCount: Integer read GetResolverCount;
@@ -219,7 +225,7 @@ type
   published
     property OnGetDataSet: TInstantGetDataSetEvent read FOnGetDataSet write FOnGetDataSet;
     property OnInitDataSet: TInstantInitDataSetEvent read FOnInitDataSet write FOnInitDataSet;
-    property ReadObjectListWithNoLock: boolean read FReadObjectListWithNoLock write FReadObjectListWithNoLock;
+    property ReadObjectListWithNoLock: boolean read FReadObjectListWithNoLock write FReadObjectListWithNoLock default false;
   end;
 
   TInstantConnectionBasedConnector = class(TInstantRelationalConnector)
@@ -427,7 +433,8 @@ type
     FSelectVirtualSQL: string;
     function AddIntegerParam(Params: TParams; const ParamName: string;
       Value: Integer): TParam;
-    function AddStringParam(Params: TParams; const ParamName, Value: string): TParam;
+    function AddStringParam(Params: TParams; const ParamName, Value: string;
+      const Size: Integer = 0): TParam;
     // Adds an "Id" param, whose data type and size depends on connector
     // settings.
     procedure AddIdParam(Params: TParams; const ParamName, Value: string);
@@ -702,8 +709,7 @@ type
     FBroker: TInstantSQLBroker;
   protected
     function BuildList(Map: TInstantAttributeMap; Additional: array of string;
-      StringFunc: TInstantStringFunc = nil; const Delimiter: string = ','):
-      string;
+      StringFunc: TInstantStringFunc = nil; const Delimiter: string = ','): string;
     function BuildAssignment(const AName: string): string;
     function BuildAssignmentList(Map: TInstantAttributeMap;
       Additional: array of string): string;
@@ -719,49 +725,32 @@ type
     function EmbraceField(const FieldName: string): string; virtual;
     function EmbraceTable(const TableName: string): string; virtual;
     function GetDelimiters: string; virtual;
-    function InternalGenerateAddFieldSQL(Metadata: TInstantFieldMetadata):
-      string; virtual;
+    function InternalGenerateAddFieldSQL(Metadata: TInstantFieldMetadata): string; virtual;
     function InternalGenerateAlterFieldSQL(OldMetadata,
       NewMetadata: TInstantFieldMetadata): string; virtual;
-    function InternalGenerateCreateIndexSQL(Metadata: TInstantIndexMetadata):
-      string; virtual;
-    function InternalGenerateCreateTableSQL(Metadata: TInstantTableMetadata):
-      string; virtual;
-    function InternalGenerateDeleteConcurrentSQL(Map: TInstantAttributeMap):
-      string; virtual;
-    function InternalGenerateDeleteSQL(Map: TInstantAttributeMap): string;
-      virtual;
-    function InternalGenerateDeleteExternalSQL(Map: TInstantAttributeMap):
-      string; virtual;
-    function InternalGenerateDropFieldSQL(Metadata: TInstantFieldMetadata):
-      string; virtual;
-    function InternalGenerateDropIndexSQL(Metadata: TInstantIndexMetadata):
-      string; virtual;
-    function InternalGenerateDropTableSQL(Metadata: TInstantTableMetadata):
-      string; virtual;
-    function InternalGenerateInsertSQL(Map: TInstantAttributeMap): string;
-      virtual;
-    function InternalGenerateInsertExternalSQL(Map: TInstantAttributeMap):
-      string; virtual;
-    function InternalGenerateSelectSQL(Map: TInstantAttributeMap): string;
-      virtual;
-    function InternalGenerateSelectVirtualSQL(Map: TInstantAttributeMap):
-      string; virtual;
-    function InternalGenerateSelectExternalSQL(Map: TInstantAttributeMap):
-      string; virtual;
-    function InternalGenerateSelectExternalPartSQL(Map: TInstantAttributeMap):
-      string; virtual;
+    function InternalGenerateCreateIndexSQL(Metadata: TInstantIndexMetadata): string; virtual;
+    function InternalGenerateCreateTableSQL(Metadata: TInstantTableMetadata): string; virtual;
+    function InternalGenerateDeleteConcurrentSQL(Map: TInstantAttributeMap): string; virtual;
+    function InternalGenerateDeleteSQL(Map: TInstantAttributeMap): string; virtual;
+    function InternalGenerateDeleteExternalSQL(Map: TInstantAttributeMap): string; virtual;
+    function InternalGenerateDropFieldSQL(Metadata: TInstantFieldMetadata): string; virtual;
+    function InternalGenerateDropIndexSQL(Metadata: TInstantIndexMetadata): string; virtual;
+    function InternalGenerateDropTableSQL(Metadata: TInstantTableMetadata): string; virtual;
+    function InternalGenerateInsertSQL(Map: TInstantAttributeMap): string; virtual;
+    function InternalGenerateInsertExternalSQL(Map: TInstantAttributeMap): string; virtual;
+    function InternalGenerateSelectSQL(Map: TInstantAttributeMap): string; virtual;
+    function InternalGenerateSelectVirtualSQL(Map: TInstantAttributeMap): string; virtual;
+    function InternalGenerateSelectExternalSQL(Map: TInstantAttributeMap): string; virtual;
+    function InternalGenerateSelectExternalPartSQL(Map: TInstantAttributeMap): string; virtual;
     function InternalGenerateSelectTablesSQL: string; virtual;
-    function InternalGenerateUpdateConcurrentSQL(Map: TInstantAttributeMap):
-      string; virtual;
+    function InternalGenerateUpdateConcurrentSQL(Map: TInstantAttributeMap): string; virtual;
     function InternalGenerateUpdateFieldCopySQL(OldMetadata, NewMetadata:
         TInstantFieldMetadata): string; virtual;
-    function InternalGenerateUpdateSQL(Map: TInstantAttributeMap): string;
-      virtual;
+    function InternalGenerateUpdateSQL(Map: TInstantAttributeMap): string; virtual;
     property Delimiters: string read GetDelimiters;
     property Broker: TInstantSQLBroker read FBroker;
   public
-    constructor Create(ABroker: TInstantSQLBroker);
+    constructor Create(ABroker: TInstantSQLBroker); virtual;
     function GenerateAddFieldSQL(Metadata: TInstantFieldMetadata): string;
     function GenerateAlterFieldSQL(OldMetadata,
       NewMetadata: TInstantFieldMetadata): string;
@@ -1159,10 +1148,6 @@ uses
 {$ENDIF}
   TypInfo, InstantUtils, InstantRtti;
 
-const
-  ConcurrencyParamName = 'IO_Concur';
-  PersistentIdParamName = 'IO_PersId';
-
 {$IFDEF IO_STATEMENT_LOGGING}
 procedure InstantLogStatement(const Caption, AStatement: string;
   AParams: TParams = nil);
@@ -1501,14 +1486,14 @@ begin
   Result := ResolverList[Index] as TInstantNavigationalResolver;
 end;
 
+{ TInstantSQLBroker }
+
 destructor TInstantSQLBroker.Destroy;
 begin
   FGenerator.Free;
   FResolverList.Free;
   inherited;
 end;
-
-{ TInstantSQLBroker }
 
 function TInstantSQLBroker.AcquireDataSet(const AStatement: string;
   AParams: TParams; OnAssignParamValue: TAssignParamValue): TDataSet;
@@ -1599,6 +1584,35 @@ begin
   if not Assigned(FGenerator) then
     FGenerator := GeneratorClass.Create(Self);
   Result := FGenerator;
+end;
+
+function TInstantSQLBroker.GetParamsStr(AParams: TParams): string;
+var
+  LParamValue: string;
+  S: string;
+  g: Integer;
+begin
+  S := '';
+  if Assigned(AParams) then
+  begin
+    for g := 0 to AParams.Count - 1 do
+    begin
+
+      Try
+        LParamValue := AParams[g].Name + ': ' + GetEnumName(TypeInfo(TFieldType),
+          Ord(AParams[g].DataType)) +
+          ' = ' + AParams[g].AsString;
+      Except
+        LParamValue := '';
+      End;
+      if S <> '' then
+        S := S + ', ';
+
+      S := S  + LParamValue;
+
+    end;
+  end;
+  Result := S;
 end;
 
 function TInstantSQLBroker.GetResolverCount: Integer;
@@ -3028,7 +3042,7 @@ var
     if Attribute.Metadata.StorageKind = skExternal then
     begin
       Part := Attribute as TInstantPart;
-      AddStringParam(Params, FieldName + InstantClassFieldName, Part.Value.ClassName);
+      AddStringParam(Params, FieldName + InstantClassFieldName, Part.Value.ClassName, CLASSNAME_PARAM_SIZE);
       Part.Value.CheckId;
       AddIdParam(Params, FieldName + InstantIdFieldName, Part.Value.Id);
     end
@@ -3063,7 +3077,7 @@ var
   begin
     Reference := Attribute as TInstantReference;
     AddStringParam(Params, FieldName + InstantClassFieldName,
-      Reference.ObjectClassName);
+      Reference.ObjectClassName, CLASSNAME_PARAM_SIZE);
     AddIdParam(Params, FieldName + InstantIdFieldName, Reference.ObjectId);
   end;
 
@@ -3084,7 +3098,9 @@ var
   var
     LParam: TParam;
   begin
-    LParam := AddStringParam(Params, FieldName, (Attribute as TInstantString).Value);
+    LParam := AddStringParam(Params, FieldName, TInstantString(Attribute).Value
+      , Attribute.Metadata.Size
+      );
     if Attribute.IsNull then
       LParam.Clear;
   end;
@@ -3147,7 +3163,7 @@ procedure TInstantSQLResolver.AddBaseParams(Params: TParams; AClassName,
 begin
   if Assigned(Params) then
   begin
-    AddStringParam(Params, InstantClassFieldName, AClassName);
+    AddStringParam(Params, InstantClassFieldName, AClassName, CLASSNAME_PARAM_SIZE);
     AddIdParam(Params, InstantIdFieldName, AObjectId);
     if AUpdateCount <> -1 then
       AddIntegerParam(Params, InstantUpdateCountFieldName, AUpdateCount);
@@ -3195,8 +3211,11 @@ procedure TInstantSQLResolver.AddIdParam(Params: TParams;
   const ParamName, Value: string);
 var
   Param: TParam;
+  LFieldType: TFieldType;
 begin
-  Param := AddParam(Params, ParamName, InstantDataTypeToFieldType(Broker.Connector.IdDataType, Broker.Connector.UseUnicode));
+  LFieldType := InstantDataTypeToFieldType(Broker.Connector.IdDataType, Broker.Connector.UseUnicode);
+  Param := AddParam(Params, ParamName, LFieldType);
+  Param.Size := Broker.Connector.IdSize;
   if Value <> '' then
     Param.Value := Value;
 end;
@@ -3223,14 +3242,15 @@ begin
 end;
 
 function TInstantSQLResolver.AddStringParam(Params: TParams;
-  const ParamName, Value: string): TParam;
+  const ParamName, Value: string; const Size: Integer = 0): TParam;
 begin
   if Broker.Connector.UseUnicode then
     Result := AddParam(Params, ParamName, ftWideString)
   else
     Result := AddParam(Params, ParamName, ftString);
+  Result.Size := Size;
   if Value <> '' then
-    Result.AsString := Value;
+    Result.Value := Value;
 end;
 
 procedure TInstantSQLResolver.CheckConflict(Info: PInstantOperationInfo;
@@ -3380,7 +3400,7 @@ var
             [AttributeMetadata.FieldName + InstantClassFieldName,
              AttributeMetadata.FieldName + InstantIdFieldName,
              AttributeMetadata.ClassMetadata.TableName]);
-          AddStringParam(SelectParams, InstantClassFieldName, AObject.ClassName);
+          AddStringParam(SelectParams, InstantClassFieldName, AObject.ClassName, CLASSNAME_PARAM_SIZE);
           AddIdParam(SelectParams, InstantIdFieldName, AObject.Id);
           DataSet := Broker.AcquireDataSet(SelectStatement, SelectParams);
           try
@@ -3588,7 +3608,7 @@ var
                 [AttributeMetadata.FieldName + InstantClassFieldName,
                  AttributeMetadata.FieldName + InstantIdFieldName,
                  AttributeMetadata.ClassMetadata.TableName]);
-              AddStringParam(SelectParams, InstantClassFieldName, AObject.ClassName);
+              AddStringParam(SelectParams, InstantClassFieldName, AObject.ClassName, CLASSNAME_PARAM_SIZE);
               AddIdParam(SelectParams, InstantIdFieldName, AObject.Id);
               DataSet := Broker.AcquireDataSet(SelectStatement, SelectParams);
               try
@@ -3841,20 +3861,18 @@ var
   var
     Stream: TStream;
     LinkResolver: TInstantSQLLinkResolver;
+    LReferences: TInstantReferences;
   begin
     if AttributeMetadata.StorageKind in [skExternal, skVirtual] then
     begin
-      with (Attribute as TInstantReferences) do
-      begin
-        Clear;
-        LinkResolver := TInstantSQLLinkResolver.Create(Self,
-            AttributeMetadata.ExternalStorageName, AObject);
-        try
-          LinkResolver.ReadAttributeObjects(TInstantReferences(Attribute),
-              AObjectId);
-        finally
-          LinkResolver.Free;
-        end;
+      LReferences := TInstantReferences(Attribute);
+      LReferences.Clear;
+      LinkResolver := TInstantSQLLinkResolver.Create(Self,
+        AttributeMetadata.ExternalStorageName, AObject);
+      try
+        LinkResolver.ReadAttributeObjects(LReferences, AObjectId);
+      finally
+        LinkResolver.Free;
       end;
     end
     else
@@ -4024,12 +4042,20 @@ end;
 procedure TInstantSQLResolver.RetrieveMapFromDataSet(
   const AObject: TInstantObject; const AObjectId: string;
   const AMap: TInstantAttributeMap; const ADataSet: TDataSet);
+var
+  LUpdateField: TField;
 begin
   Assert(Assigned(AObject));
   Assert(Assigned(ADataSet));
 
   if AMap.IsRootMap then
-    Broker.SetObjectUpdateCount(AObject, ADataSet.FieldByName(InstantUpdateCountFieldName).AsInteger);
+  begin
+    LUpdateField := ADataSet.FindField(InstantUpdateCountFieldName);
+    if Assigned(LUpdateField) then
+      Broker.SetObjectUpdateCount(AObject, LUpdateField.AsInteger)
+    else
+      Broker.SetObjectUpdateCount(AObject, 1);
+  end;
   ReadAttributes(AObject, AObjectId, AMap, ADataSet);
 end;
 
@@ -4390,7 +4416,7 @@ begin
       InstantParentClassFieldName,
       InstantParentIdFieldName]);
     Resolver.AddStringParam(Params, InstantParentClassFieldName,
-        AttributeOwner.ClassName);
+        AttributeOwner.ClassName, CLASSNAME_PARAM_SIZE);
     Resolver.AddIdParam(Params, InstantParentIdFieldName,
         AttributeOwner.Id);
     Broker.Execute(Statement, Params);
@@ -4413,7 +4439,7 @@ begin
     Statement := Format(Resolver.SelectExternalSQL, [TableName]);
     Resolver.AddIdParam(Params, InstantParentIdFieldName, AttributeOwner.Id);
     Resolver.AddStringParam(Params, InstantParentClassFieldName,
-        AttributeOwner.ClassName);
+        AttributeOwner.ClassName, CLASSNAME_PARAM_SIZE);
     DataSet := Broker.AcquireDataSet(Statement, Params);
     try
       DataSet.Open;
@@ -4475,7 +4501,7 @@ begin
     end;
     Resolver.AddIdParam(Params, InstantParentIdFieldName, AObjectId);
     Resolver.AddStringParam(Params, InstantParentClassFieldName,
-      AttributeOwner.ClassName);
+      AttributeOwner.ClassName, CLASSNAME_PARAM_SIZE);
     DataSet := Broker.AcquireDataSet(Statement, Params);
     try
       DataSet.Open;
@@ -4522,11 +4548,11 @@ begin
       Resolver.AddIdParam(Params, InstantIdFieldName,
           Attribute.Connector.GenerateId);
       Resolver.AddStringParam(Params, InstantParentClassFieldName,
-          AttributeOwner.ClassName);
+          AttributeOwner.ClassName, CLASSNAME_PARAM_SIZE);
       Resolver.AddIdParam(Params, InstantParentIdFieldName,
           AttributeOwner.Id);
       Resolver.AddStringParam(Params, InstantChildClassFieldName,
-          Obj.ClassName);
+          Obj.ClassName, CLASSNAME_PARAM_SIZE);
       Resolver.AddIdParam(Params, InstantChildIdFieldName,
           Obj.Id);
       Resolver.AddIntegerParam(Params, InstantSequenceNoFieldName, Succ(I));
@@ -4785,6 +4811,7 @@ begin
     StringFunc := EmbraceField;
   Result := '';
   if Assigned(Map) then
+  begin
     for I := 0 to Pred(Map.Count) do
     begin
       AttributeMetadata := Map[I];
@@ -4793,7 +4820,7 @@ begin
       begin
         RefClassFieldName := FieldName + InstantClassFieldName;
         RefIdFieldName := FieldName + InstantIdFieldName;
-        Result := Result + StringFunc(RefClassFieldName) + ', ' +
+        Result := Result + StringFunc(RefClassFieldName) + SpaceDelimiter +
           StringFunc(RefIdFieldName);
         Result := Result + SpaceDelimiter;
       end
@@ -4803,7 +4830,7 @@ begin
         begin
           RefClassFieldName := FieldName + InstantClassFieldName;
           RefIdFieldName := FieldName + InstantIdFieldName;
-          Result := Result + StringFunc(RefClassFieldName) + ', ' +
+          Result := Result + StringFunc(RefClassFieldName) + SpaceDelimiter +
             StringFunc(RefIdFieldName);
           Result := Result + SpaceDelimiter;
         end
@@ -4827,6 +4854,7 @@ begin
         Result := Result + SpaceDelimiter;
       end;
     end;
+  end;
   for I := Low(Additional) to High(Additional) do
     Result := Result + StringFunc(Additional[I]) + SpaceDelimiter;
   Delete(Result, Length(Result) - Length(Delimiter), Length(Delimiter) + 2);
@@ -5071,8 +5099,7 @@ function TInstantSQLGenerator.InternalGenerateDeleteExternalSQL(
 var
   WhereStr: string;
 begin
-  WhereStr := BuildWhereStr([InstantParentClassFieldName,
-    InstantParentIdFieldName]);
+  WhereStr := BuildWhereStr([InstantParentClassFieldName, InstantParentIdFieldName]);
   Result := Format('DELETE FROM %s WHERE %s',
     [EmbraceTable('%s'), WhereStr]);
 end;
@@ -5222,8 +5249,7 @@ var
 begin
   AssignmentStr := BuildAssignmentList(Map,
     [InstantIdFieldName, InstantUpdateCountFieldName]);
-  WhereStr := BuildWhereStr([InstantClassFieldName]) +
-    BuildPersistentIdCriteria;
+  WhereStr := BuildWhereStr([InstantClassFieldName]) + BuildPersistentIdCriteria;
   Result := Format('UPDATE %s SET %s WHERE %s',
     [EmbraceTable(Map.Name), AssignmentStr, WhereStr]);
 end;

@@ -432,71 +432,85 @@ begin
   LReferences := AData.AsObject as TInstantReferences;
 
   LObjectsFound := TList<TInstantObject>.Create;
-  //Add new Referenced objects
-  for I := 0 to LJSONArray.Count - 1 do
-  begin
-    LJSONObject := LJSONArray.Items[I] as TJSONObject;
-    //Read classname from JSON
-    LJSonValue := LJSONObject.GetValue(IO_SER_CLASSNAME);
-    if Assigned(LJSonValue) then
+  Try
+    //Add new Referenced objects
+    for I := 0 to LJSONArray.Count - 1 do
     begin
-      LClassName := LJSonValue.Value;
-      LClassAndIdInJSON := True;
-    end
-    else
-    begin
-      LClassName := LReferences.RequiredClassName;
-      LClassAndIdInJSON := False;
-    end;
-
-    //Read Id from JSON
-    LJSonValueId := LJSONObject.GetValue(IO_SER_ID);
-    if Assigned(LJSonValueId) then
-    begin
-      LId := LJSonValueId.Value;
-    end
-    else
-    begin
-      LClassAndIdInJSON := False;
-      LClass := LReferences.RequiredClass;
-      if LClass.InheritsFrom(TInstantObject) then
+      LJSONObject := LJSONArray.Items[I] as TJSONObject;
+      //Read classname from JSON
+      LJSonValue := LJSONObject.GetValue(IO_SER_CLASSNAME);
+      if Assigned(LJSonValue) then
       begin
-        LJSonValueId := LJSONObject.GetValue(TInstantObjectClass(LClass).GetSerializedIdPropertyName);
-
-        if Assigned(LJSonValueId) then
-          LId := LJSonValueId.Value;
+        LClassName := LJSonValue.Value;
+        LClassAndIdInJSON := True;
+      end
+      else
+      begin
+        LClassName := LReferences.RequiredClassName;
+        LClassAndIdInJSON := False;
       end;
-    end;
 
-    if LId <> '' then
-    begin
-      LInstantObject := RetrieveOrCreateInstantObject(LClassName, LId, LReferences.Connector);
-      try
-        //If the referenced object contains also data member, deserialize the object to update data
-        if (LJSONObject.Count > 2) or not LClassAndIdInJSON then
+      //Read Id from JSON
+      LJSonValueId := LJSONObject.GetValue(IO_SER_ID);
+      if Assigned(LJSonValueId) then
+      begin
+        LId := LJSonValueId.Value;
+      end
+      else
+      begin
+        LClassAndIdInJSON := False;
+        LClass := LReferences.RequiredClass;
+        if LClass.InheritsFrom(TInstantObject) then
         begin
-          LType := TRttiUtils.Context.GetType(LInstantObject.ClassType);
-          AContext.ReadDataMember(LJSONObject, LType, LInstantObject);
+          LJSonValueId := LJSONObject.GetValue(TInstantObjectClass(LClass).GetSerializedIdPropertyName);
+
+          if Assigned(LJSonValueId) then
+            LId := LJSonValueId.Value;
         end;
-        LIndex := LReferences.IndexOf(LInstantObject);
-        if (LIndex < 0) then
-          LReferences.Add(LInstantObject);
-        LObjectsFound.Add(LInstantObject);
-      finally
-        LInstantObject.Free;
+      end;
+
+      if LId <> '' then
+      begin
+        LInstantObject := RetrieveOrCreateInstantObject(LClassName, LId, LReferences.Connector);
+        try
+          //If the referenced object contains also data member, deserialize the object to update data
+          if (LJSONObject.Count > 2) or not LClassAndIdInJSON then
+          begin
+            LType := TRttiUtils.Context.GetType(LInstantObject.ClassType);
+            AContext.ReadDataMember(LJSONObject, LType, LInstantObject);
+          end;
+          LIndex := LReferences.IndexOf(LInstantObject);
+          if (LIndex < 0) then
+            LReferences.Add(LInstantObject);
+          LInstantObject.AddRef;
+          LObjectsFound.Add(LInstantObject);
+        finally
+          LInstantObject.Free;
+        end;
       end;
     end;
-  end;
 
-  //Remove referenced objects not found
-  for I := LReferences.Count - 1 downto 0 do
-  begin
-    LInstantObject := LReferences.Items[I];
-    if LObjectsFound.IndexOf(LInstantObject) < 0 then
-    begin
-      LReferences.Delete(I);
-    end;
-  end;
+    //Remove referenced objects not found
+    LReferences.Owner.AddRef;
+    Try
+      for I := LReferences.Count - 1 downto 0 do
+      begin
+        LInstantObject := LReferences[I];
+        if LObjectsFound.IndexOf(LInstantObject) < 0 then
+        begin
+          LInstantObject.Dispose;
+          LReferences.Delete(I);
+        end;
+      end;
+    Finally
+      LReferences.Owner.Free;
+    End;
+  Finally
+    for I := 0 to LObjectsFound.Count-1 do
+        LObjectsFound[I].Free;
+
+    LObjectsFound.Free;
+  End;
 
   Result := LReferences;
 end;
