@@ -39,7 +39,7 @@ type
 
   // Test methods for class TInstantBlob
   [TestFixture]
-  TestTInstantBlob = class(TInstantTestCase)
+  TestTInstantBlob = class({$IFNDEF DUNITX_TESTS}TTestCase{$ELSE}TInstantTestCase{$ENDIF})
   private
     FConn: TInstantMockConnector;
     FInstantBlob: TInstantBlob;
@@ -96,7 +96,7 @@ begin
   AssertEquals(0, FInstantBlob.Size);
 
   vStream := TFileStream.Create(
-    ExtractFilePath(ParamStr(0)) + 'TestBlobText.txt', fmOpenRead);
+    ExtractFilePath(ParamStr(0)) + 'TestBlobText.txt', fmOpenRead or fmShareDenyNone);
   try
     AssertTrue(vStream.Size > 0);
     vSource := TInstantBlob.Create;
@@ -148,13 +148,8 @@ end;
 procedure TestTInstantBlob.TestAsVariant;
 begin
   FInstantBlob.AsVariant := 'NewString';
-  {$IFDEF VER130}
-  AssertEquals('NewString', VarToStr(FInstantBlob.Value));
-  AssertEquals('NewString', VarToStr(FInstantBlob.AsVariant));
-  {$ELSE}
   AssertEquals('NewString', FInstantBlob.Value);
   AssertEquals('NewString', FInstantBlob.AsVariant);
-  {$ENDIF}
 end;
 
 procedure TestTInstantBlob.TestClear;
@@ -162,7 +157,7 @@ var
   vStream: TStream;
 begin
   vStream := TFileStream.Create(
-    ExtractFilePath(ParamStr(0)) + 'TestBlobText.txt', fmOpenRead);
+    ExtractFilePath(ParamStr(0)) + 'TestBlobText.txt', fmOpenRead or fmShareDenyNone);
   try
     AssertTrue(vStream.Size > 0);
     FInstantBlob.LoadDataFromStream(vStream);
@@ -181,7 +176,7 @@ begin
   AssertEquals(0, FInstantBlob.Size);
 
   vStream := TFileStream.Create(
-    ExtractFilePath(ParamStr(0)) + 'TestBlobText.txt', fmOpenRead);
+    ExtractFilePath(ParamStr(0)) + 'TestBlobText.txt', fmOpenRead or fmShareDenyNone);
   try
     AssertTrue(vStream.Size > 0);
     FInstantBlob.LoadDataFromStream(vStream);

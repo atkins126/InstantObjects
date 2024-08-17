@@ -30,18 +30,14 @@
 
 unit InstantModelExpert;
 
-{$IFDEF LINUX}
-{$I '../InstantDefines.inc'}
-{$ELSE}
 {$I '..\InstantDefines.inc'}
-{$ENDIF}
 
 interface
 
 uses
   Classes, ToolsAPI, InstantOTA, Menus, ImgList, ExtCtrls, Forms,
   InstantDesignResources, InstantModelExplorer, InstantCode, 
-  InstantConsts, ActnList{$IFDEF D17+}, System.Actions{$ENDIF};
+  InstantConsts, ActnList, System.Actions;
 
 type
   TIOMetaDataCheckState = (mcNeverChecked, mcCheckError, mcCheckCorrect);
@@ -81,6 +77,8 @@ type
     FUpdateTimer: TTimer;
     MetaDataCheckState : TIOMetaDataCheckState;
     MetaDataCheckUnits : string;
+    FTimerDisabled: Boolean;
+    FTimerInterval: Integer;
     procedure ExplorerApplyClass(Sender: TObject; AClass: TInstantCodeClass;
       ChangeInfo: TInstantCodeClassChangeInfo);
     procedure ExplorerGotoSource(Sender: TObject; const FileName: string;
@@ -133,7 +131,6 @@ type
     function IsProjectUnit(FileName: string): Boolean;
     function IsModelUnit(FileName: string): Boolean;
     procedure ShowExplorer;
-    procedure UpdateModel;
     procedure UpdateTimerTick(Sender: TObject);
     procedure UpdateMenuActions;
     property CurrentSource: string read GetCurrentSource;
@@ -151,10 +148,13 @@ type
       CheckTime: TDateTime = 0): Boolean;
     procedure SelectUnits;
     function UpdateEnabled: Boolean;
+    procedure UpdateModel;
     procedure UpdateModelUnits;
     property ActiveProject: IOTAProject read GetActiveProject;
     property AllowContinue: Boolean read GetAllowContinue;
     property IsDirty: Boolean read GetIsDirty write SetIsDirty;
+    property TimerDisabled: Boolean read FTimerDisabled write FTimerDisabled default True;
+    property TimerInterval: Integer read FTimerInterval write FTimerInterval default 10000;
   end;
 
 var
@@ -177,7 +177,6 @@ const
   SExplorerItemActionName = 'InstantExplorerItemAction'; // Do not localize
   SBuilderItemActionName = 'InstantBuilderItemAction'; // Do not localize
   SResFileExt = '.mdr';
-  UpdateInterval = 500;
 
 procedure ReaderIdle(Reader: TInstantCodeReader; var Continue: Boolean);
 begin
@@ -502,17 +501,12 @@ begin
       ExplorerItemClick, 0,
       Menus.ShortCut(Word('M'), [ssCtrl, ssShift]));
 
-{$IFDEF D9+}
     Item := ItemByName(Menu, 'ViewStructureItem');
-{$ELSE}
-    Item := ItemByName(Menu, 'CodeExplorer');
-{$ENDIF}
     if Assigned(Item) then
       Menu.Insert(Item.MenuIndex + 1, FExplorerItem)
     else
       Menu.Add(FExplorerItem);
 
-{$IFDEF D9+}
   { Add Database InstantObjects Builder to View-menu }
     CreateBuilderMenuItem;
     Item := ItemByName(Menu, 'mnuViewDataExplorer');
@@ -520,18 +514,7 @@ begin
       Menu.Insert(Item.MenuIndex + 1, FBuilderItem)
     else
       Menu.Add(FBuilderItem);
-{$ENDIF}
   end;
-
-{$IFNDEF D9+}
-  { Add Database InstantObjects Builder to Database-menu }
-  Menu := ItemByName(MainMenu.Items, 'DatabaseMenu');
-  if Assigned(Menu) then
-  begin
-    CreateBuilderMenuItem;
-    Menu.Add(FBuilderItem);
-  end;
-{$ENDIF}
 
 end;
 
@@ -546,7 +529,7 @@ begin
   try
     Caption := 'Database Builder';
     Model := CodeModel.Model;
-    FileName := ChangeFileExt(Project.FileName, '.con');
+    FileName := ChangeFileExt(Project.FileName, '.xml');
     VisibleActions := [atNew, atEdit, atDelete, atRename, atBuild, atEvolve, atOpen];
     Execute;
   finally
@@ -646,6 +629,8 @@ end;
 constructor TInstantModelExpert.Create;
 begin
   //CheckExpiration;
+  FTimerInterval := 10000;
+  FTimerDisabled := True;
   FResourceModule := TInstantDesignResourceModule.Create(nil);
   FIDEInterface := CreateIDEInterface;
   FUpdateTimer := CreateUpdateTimer;
@@ -673,7 +658,7 @@ begin
   with Result do
   begin
     Enabled := False;
-    Interval := UpdateInterval;
+    Interval := FTimerInterval;
     OnTimer := UpdateTimerTick;
   end;
 end;
@@ -1090,13 +1075,8 @@ function TInstantModelExpert.LoadModel(Model: TInstantCodeModel;
       Module := Modules[I] as IOTAModule;
       Editor := FIDEInterface.SourceEditor(Module);
 
-{$IFDEF D12+}
       Source := FIDEInterface.ReadEditorSource(Editor);
       Stream := TStringStream.Create(Source, TEncoding.Unicode);
-{$ELSE}
-      Source := FIDEInterface.ReadEditorSource(Editor);
-      Stream := TStringStream.Create(Source);
-{$ENDIF}
 
       try                                    
         Model.LoadModule(Stream, Editor.FileName);
@@ -1225,7 +1205,8 @@ end;
 
 function TInstantModelExpert.UpdateEnabled: Boolean;
 begin
-  Result := FUpdateDisableCount = 0;
+  Result := (FUpdateDisableCount = 0) and
+    not FTimerDisabled;
 end;
 
 procedure TInstantModelExpert.UpdateModel;

@@ -30,7 +30,11 @@
 
 unit InstantConnectionManager;
 
+{$IFDEF LINUX64}
+{$I '../InstantDefines.inc'}
+{$ELSE}
 {$I '..\InstantDefines.inc'}
+{$ENDIF}
 
 interface
 
@@ -405,7 +409,7 @@ end;
 function TInstantConnectionManager.CreateConnectionDefsInputStream: TStream;
 begin
   if FileExists(DefsFileName) then
-    Result := TFileStream.Create(DefsFileName, fmOpenRead)
+    Result := TFileStream.Create(DefsFileName, fmOpenRead or fmShareDenyNone)
   else
     Result := nil;
 end;

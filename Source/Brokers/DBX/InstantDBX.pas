@@ -32,12 +32,16 @@ unit InstantDBX;
 
 interface
 
+{$IFDEF LINUX64}
+{$I '../../InstantDefines.inc'}
+{$ELSE}
 {$I '..\..\InstantDefines.inc'}
+{$ENDIF}
 
 uses
   Controls,
   Classes, DB,
-  {$IFNDEF D11+}DBXpress,{$ELSE}DBXCommon,{$ENDIF}
+  DBXCommon,
   SqlExpr, InstantPersistence, InstantCommand,
   InstantBrokers, InstantMetadata, InstantTypes;
 
@@ -122,7 +126,8 @@ type
 
   TInstantDBXResolver = class(TInstantSQLResolver)
   protected
-    function ReadBooleanField(DataSet: TDataSet; const FieldName: string): Boolean; override;
+    function ReadBooleanField(DataSet: TDataSet; const FieldName: string;
+      out AWasNull: boolean): Boolean; override;
   end;
 
   TInstantDBXTranslator = class(TInstantRelationalTranslator)
@@ -266,23 +271,8 @@ type
   end;
 
   {
-    Handles transactions in DBX3.
-  }
-  {$IFNDEF D11+}
-  TInstantDBX3Transaction = class(TInstantDBXTransaction)
-  private
-    FTransactionDesc: TTransactionDesc;
-  public
-    procedure Start; override;
-    procedure Commit; override;
-    procedure Rollback; override;
-  end;
-  {$ENDIF}
-
-  {
     Handles transactions in DBX4.
   }
-  {$IFDEF D11+}
   TInstantDBX4Transaction = class(TInstantDBXTransaction)
   private
     FTransaction: TDBXTransaction;
@@ -291,7 +281,6 @@ type
     procedure Commit; override;
     procedure Rollback; override;
   end;
-  {$ENDIF}
 
 implementation
 
@@ -369,11 +358,7 @@ end;
 
 function TInstantDBXConnector.CreateTransaction: TInstantDBXTransaction;
 begin
-  {$IFDEF D11+}
   Result := TInstantDBX4Transaction.Create(Self);
-  {$ELSE}
-  Result := TInstantDBX3Transaction.Create(Self);
-  {$ENDIF}
 end;
 
 destructor TInstantDBXConnector.Destroy;
@@ -540,9 +525,6 @@ begin
     SQL.Text := AStatement;
     if Assigned(AParams) then
       AssignParams(AParams, Params, OnAssignParamValue);
-{$IFNDEF D9+}
-    NoMetadata := True;
-{$ENDIF}
   end;
   Result := Query;
 end;
@@ -589,14 +571,20 @@ function TInstantDBXBroker.Execute(const AStatement: string;
 var
   LQuery: TSQLQuery;
 begin
-  Result := 0;
   LQuery := AcquireDataSet(AStatement, AParams, OnAssignParamValue) as TSQLQuery;
   try try
     Result := LQuery.ExecSQL;
   except
     on E: Exception do
+    begin
+      {$IFDEF DEBUG}
       raise EInstantError.CreateFmt(SSQLExecuteError,
         [AStatement, GetParamsStr(AParams), E.Message], E);
+      {$ELSE}
+      raise EInstantError.CreateFmt(SSQLExecuteErrorShort,
+        [E.Message], E);
+      {$ENDIF}
+    end;
   end;
   finally
     ReleaseDataSet(LQuery);
@@ -621,9 +609,13 @@ end;
 { TInstantDBXResolver }
 
 function TInstantDBXResolver.ReadBooleanField(DataSet: TDataSet;
-  const FieldName: string): Boolean;
+  const FieldName: string; out AWasNull: boolean): Boolean;
+var
+  LField: TField;
 begin
-  Result := Boolean(DataSet.FieldByName(FieldName).AsInteger);
+  LField := DataSet.FieldByName(FieldName);
+  AWasNull := LField.IsNull;
+  Result := Boolean(LField.AsInteger);
 end;
 
 { TInstantDBXTranslator }
@@ -1013,31 +1005,8 @@ end;
 
 { TInstantDBX3Transaction }
 
-{$IFNDEF D11+}
-procedure TInstantDBX3Transaction.Commit;
-begin
-  Connector.Connection.Commit(FTransactionDesc);
-end;
-
-procedure TInstantDBX3Transaction.Rollback;
-begin
-  Connector.Connection.Rollback(FTransactionDesc);
-end;
-
-procedure TInstantDBX3Transaction.Start;
-begin
-  if FTransactionDesc.TransactionID = high(FTransactionDesc.TransactionID) then
-    FTransactionDesc.TransactionID := 1
-  else
-    FTransactionDesc.TransactionID := FTransactionDesc.TransactionID + 1;
-  FTransactionDesc.IsolationLevel := xilREADCOMMITTED;
-  Connector.Connection.StartTransaction(FTransactionDesc);
-end;
-{$ENDIF}
-
 { TInstantDBX4Transaction }
 
-{$IFDEF D11+}
 procedure TInstantDBX4Transaction.Commit;
 begin
   Connector.Connection.CommitFreeAndNil(FTransaction);
@@ -1052,7 +1021,6 @@ procedure TInstantDBX4Transaction.Start;
 begin
   FTransaction := Connector.Connection.BeginTransaction;
 end;
-{$ENDIF}
 
 { TInstantDBXFirebirdBroker }
 

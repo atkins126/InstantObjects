@@ -30,7 +30,11 @@
 
 unit InstantConsts;
 
+{$IFDEF LINUX64}
+{$I '../InstantDefines.inc'}
+{$ELSE}
 {$I '..\InstantDefines.inc'}
+{$ENDIF}
 
 interface
 
@@ -48,6 +52,7 @@ const
   InstantDateTimeJFormat = InstantDateJFormat +'T' + InstantTimeJFormat + 'Z';
   InstantFloatJFormat = '0.0';
   InstantDot = '.';
+  InstantPkSeparator = '|';
   InstantFalseString = 'FALSE';
   InstantFalseJString = 'false';
   InstantNowString = 'NOW';
@@ -63,6 +68,7 @@ const
   InstantTrueJString = 'true';
   InstantEndTagFormat= InstantTagStart + '/%s' + InstantTagEnd;
   InstantIdFieldName = 'Id';
+  InstantDescriptionAttrName = 'Description';
   InstantIdPropName = InstantIdFieldName;
   InstantIndexFieldNames = InstantClassFieldName + ';' + InstantIdFieldName;
   InstantModelResourceName = 'InstantObjects.Model';
@@ -79,12 +85,7 @@ const
   InstantLogStatementBefore = 'Before: ';
   InstantLogStatementSelect = 'Select: ';
   InstantLogStatementExecute = 'Execute: ';
-
-{$IFNDEF D6+}
-const
-  sLineBreak = #13#10;
-{$ENDIF}
-
+  InstantPrologue = '<?xml version="1.0" encoding="UTF-8"?>';
 var
   InstantXMLIndentationSize: Byte = 2;
   InstantJSONIndentationSize: Byte = 2;
@@ -218,9 +219,11 @@ resourcestring
   SParentContextNotFoundForSubQuery = 'Oggetto del contesto padre non trovato per la subquery (''%s'')';
   SUsingAttributeMustBeAReference = 'L''attributo (''%s'') non è un reference: l''attributo USING deve essere un reference.';
   SUsingAttributeMetadataNotFound = 'Impossibile ottenere i metadati per l''attributo USING (''%s'')';
+  SSQLExecuteErrorShort = 'Errore in esecuzione SQL: ''%s''';
   SSQLExecuteError = 'Errore in esecuzione SQL. Comando: ''%s''. Parametri: ''%s''. Errore: ''%s''';
   SUseUnicodeWrong = 'Errore: Unicode dell''exposer non corrisponde a Unicode del connector in uso.';
   SDefaultConnectorNotAvailable = 'Errore: InstantDefaultConnector non è disponibile in una app. console.';
+  SAttributeNameAttributeValueDiff = 'Errore: Nomi degli attributi %d e valori degli attributi %d sono differenti.';
 {$ELSE}
   SAccessError = 'Cannot access attribute %s(''%s'') as type: %s';
   SAccessorClassNotFoundFor = 'Accessor class not found for class %s ';
@@ -349,9 +352,11 @@ resourcestring
   SParentContextNotFoundForSubQuery = 'Parent context object not found for subquery (''%s'')';
   SUsingAttributeMustBeAReference = 'Attribute (''%s'') is not a reference: USING attribute must be a reference.';
   SUsingAttributeMetadataNotFound = 'Cannot get metadata for USING attribute (''%s'')';
+  SSQLExecuteErrorShort = 'SQL execute error: ''%s''';
   SSQLExecuteError = 'SQL execute error. Statement: ''%s''. Parameters: ''%s''. Error: ''%s''';
   SUseUnicodeWrong = 'Error: Unicode of exposer don''t match with Unicode of connector in use.';
   SDefaultConnectorNotAvailable = 'Error: InstantDefaultConnector is not available in console app.';
+  SAttributeNameAttributeValueDiff = 'Error: Attribute names %d and attribute values %d are different.';
 {$ENDIF}
 
 implementation

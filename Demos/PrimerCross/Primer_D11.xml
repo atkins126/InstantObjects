@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <TInstantConnectionDefs>
   <TInstantXMLConnectionDef>
     <Name>XmlDB</Name>
@@ -36,15 +37,15 @@ Trim Char=False
     <HostName>127.0.0.1</HostName>
     <Password>masterkey</Password>
     <DriverId>FB</DriverId>
-    <UseDelimitedIdents>FALSE</UseDelimitedIdents>
     <User_Name>SYSDBA</User_Name>
-    <OSAuthent>FALSE</OSAuthent>
   </TInstantFireDACConnectionDef>
   <TInstantFireDACConnectionDef>
     <Name>FireDac_MSSQL</Name>
     <IsBuilt>TRUE</IsBuilt>
     <BlobStreamFormat>sfXML</BlobStreamFormat>
+    <DefaultStatementCacheCapacity>10</DefaultStatementCacheCapacity>
     <LoginPrompt>FALSE</LoginPrompt>
+    <ReadObjectListWithNoLock>TRUE</ReadObjectListWithNoLock>
     <Database>PRIMERDB</Database>
     <HostName>.\SQLEXPRESS</HostName>
     <AdditionalParams>MetaDefSchema=dbo</AdditionalParams>
@@ -77,6 +78,11 @@ IsolationLevel=ReadCommitted
 OS Authentication=True
 Prepare SQL=False
 ConnectTimeout=60
-Mars_Connection=False</Params>
+Mars_Connection=True</Params>
   </TInstantDBXConnectionDef>
+  <TInstantJSONConnectionDef>
+    <Name>JSONDB</Name>
+    <IsBuilt>TRUE</IsBuilt>
+    <RootFolder>.\JSONDB</RootFolder>
+  </TInstantJSONConnectionDef>
 </TInstantConnectionDefs>

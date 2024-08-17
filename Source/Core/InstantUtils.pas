@@ -57,6 +57,8 @@ function InstantCompareValues(V1, V2: Variant;
 function InstantCompareText(const S1, S2: string; IgnoreCase: Boolean): Integer;
 function InstantConstArrayToVariant(AValues : array of const) : Variant;
 function InstantDateTimeToStr(DateTime: TDateTime): string;
+function InstantDateToStr(DateTime: TDateTime): string;
+function InstantTimeToStr(ADate: TDateTime): string;
 function InstantDateTimeToJStr(ADate: TDateTime): string;
 function InstantEmbrace(const S, Delimiters: string): string;
 function InstantFileAge(const FileName: string; out FileDateTime: TDateTime): boolean;
@@ -85,19 +87,18 @@ function InstantStrToTime(const Str: string): TDateTime;
 function InstantUnquote(const Str: string; Quote: Char): string;
 function InstantStrArrayToString(const StrArray: array of string; Delimiter: Char): string;
 
-{$IFDEF D5}
 function DateOf(const AValue: TDateTime): TDateTime;
 function TimeOf(const AValue: TDateTime): TDateTime;
-{$ENDIF}
 
 function InstantCharInSet(C: AnsiChar; const CharSet: TSysCharSet): Boolean; overload;
 function InstantCharInSet(C: WideChar; const CharSet: TSysCharSet): Boolean; overload;
+function InstantSmartConcat(const AArray: array of string; const ADelimiter: string = ' - '): string;
 
 implementation
 
 uses
   Windows, ActiveX, ComObj,
-  {$IFDEF D6+}Variants,{$ENDIF} InstantConsts, InstantRtti,
+  Variants, InstantConsts, InstantRtti,
   DateUtils;
 
 
@@ -263,10 +264,8 @@ function InstantCompareValues(V1, V2: Variant;
         Result := CompareNumbers(V1, V2);
       varString, varOleStr:
         Result := CompareStrings(V1, V2);
-      {$IFDEF UNICODE}
       varUString:
         Result := CompareStrings(V1, V2);
-      {$ENDIF}
     else
       Result := 0;
     end
@@ -324,6 +323,16 @@ begin
   Result := FormatDateTime(InstantDateTimeFormat, DateTime)
 end;
 
+function InstantDateToStr(DateTime: TDateTime): string;
+begin
+  Result := FormatDateTime(InstantDateFormat, DateTime)
+end;
+
+function InstantTimeToStr(ADate: TDateTime): string;
+begin
+  Result := FormatDateTime(InstantTimeFormat, ADate)
+end;
+
 function InstantDateTimeToJStr(ADate: TDateTime): string;
 const
   SDateFormat: string = '%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ';
@@ -360,19 +369,8 @@ begin
 end;
 
 function InstantFileAge(const FileName: string; out FileDateTime: TDateTime): boolean;
-{$IFNDEF D10+}
-var
-  LFileAge : integer;
-{$ENDIF}
 begin
-  {$IFDEF D10+} // Single param FileAge deprecated in D2006
-     Result := FileAge(FileName, FileDateTime);
-  {$ELSE}
-    LFileAge := FileAge(FileName);
-    Result := (LFileAge <> -1);
-    if (Result) then
-      FileDateTime := FileDateToDateTime(LFileAge);
-  {$ENDIF}
+  Result := FileAge(FileName, FileDateTime);
 end;
 
 function InstantFileVersionStr(const FileName: string): string;
@@ -670,7 +668,6 @@ begin
       Result := Result + Delimiter + StrArray[I];
 end;
 
-{$IFDEF D5}
 function DateOf(const AValue: TDateTime): TDateTime;
 begin
   Result := Trunc(AValue);
@@ -680,24 +677,31 @@ function TimeOf(const AValue: TDateTime): TDateTime;
 begin
   Result := Frac(AValue);
 end;
-{$ENDIF}
 
 function InstantCharInSet(C: AnsiChar; const CharSet: TSysCharSet): Boolean;
 begin
-{$IFNDEF D12+}
-  Result := C in CharSet;
-{$ELSE}
   Result := CharInSet(C, CharSet);
-{$ENDIF}
 end;
 
 function InstantCharInSet(C: WideChar; const CharSet: TSysCharSet): Boolean;
 begin
-{$IFNDEF D12+}
-  Result := (C < #$0100) and (AnsiChar(C) in CharSet);
-{$ELSE}
   Result := CharInSet(C, CharSet);
-{$ENDIF}
+end;
+
+function InstantSmartConcat(const AArray: array of string; const ADelimiter: string = ' - '): string;
+var
+  LValue: string;
+begin
+  Result := '';
+  for LValue in AArray do
+  begin
+    if LValue <> '' then
+    begin
+      if Result <> '' then
+        Result := Result + ADelimiter;
+      Result := Result + LValue;
+    end;
+  end;
 end;
 
 end.

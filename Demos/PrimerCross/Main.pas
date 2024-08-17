@@ -11,7 +11,7 @@ uses
   InstantPersistence, BasicView, Stopwatch,
   InstantConnectionManagerFormUnit, InstantConnectionManager,
   System.Actions, //if don't compile, remove this unit
-  WideStrings, SqlExpr;
+  WideStrings, SqlExpr, System.ImageList;
 
 type
   TMainForm = class(TForm)
@@ -130,21 +130,15 @@ uses
   installed all brokers, please remove the missing broker unit(s) from
   the list. }
 
-  {$IFNDEF VER130}
   InstantDBX,
-  {$ENDIF}
   InstantADO,
-  //InstantIBX, remome comment if you want to use IbExpress
-  {$IFDEF D19+}
+  //InstantIBX, remove comment if you want to use IbExpress
   InstantFireDAC,
-  {$ENDIF}
-  {$IFDEF D14+}
-    // These are required for DBExpress to load the drivers in newer
-    // versions of Delphi. If you get a compilation error it means you
-    // don't have an Enterprise version of Delphi - just remove them.
-    DBXFirebird, DBXInterBase, DBXDB2, DBXMSSql, DBXOracle,
-  {$ENDIF}
-  InstantXML;
+  // These are required for DBExpress to load the drivers in newer
+  // versions of Delphi. If you get a compilation error it means you
+  // don't have an Enterprise version of Delphi - just remove them.
+  DBXFirebird, DBXInterBase, DBXDB2, DBXMSSql, DBXOracle,
+  InstantXML, InstantJSON;
 
 {$R *.dfm}
 
@@ -359,9 +353,11 @@ var
       if Random(2) = 0 then
       begin
         if Companies.Count > 50 then
+        begin
           Companies.Delete(0);
-        Result.AddRef;
+        end;
         Companies.Add(Result);
+        Result.AddRef;
       end;
     end;
   end;
@@ -372,7 +368,7 @@ begin
   GetAsyncKeyState(VK_ESCAPE);
   CommitCount := 200;
   Randomize;
-  Companies := TObjectList.Create;
+  Companies := TObjectList.Create(True);
   Stopwatch.Start(Count);
   try
     InstantDefaultConnector.StartTransaction;
@@ -494,7 +490,7 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  Caption := Application.Title;
+  Caption := StringReplace(Application.Title, sLineBreak, ' - ', [rfReplaceAll]);
 
   LoadMultipleImages(SideBarImages,'MAINSIDEBARIMAGES',HInstance);
   LoadMultipleImages(ActionImages,'MAINACTIONIMAGES',HInstance);
@@ -629,6 +625,7 @@ begin
       try
         LInstantQuery := Connector.CreateQuery;
         try
+          //Create Countries
           LInstantQuery.Command := 'SELECT * FROM TCountry';
           LInstantQuery.Open;
           for var I := 0 to LInstantQuery.ObjectCount - 1 do
@@ -641,10 +638,23 @@ begin
           if LInstantQuery.ObjectCount = 0 then
             CreateCountries;
 
+          //Create Categories
           LInstantQuery.Command := 'SELECT * FROM TCategory';
           LInstantQuery.Open;
           if LInstantQuery.ObjectCount = 0 then
             CreateCategories;
+
+          //Create Profiles
+          LInstantQuery.Command := 'SELECT * FROM TProfile';
+          LInstantQuery.Open;
+          if LInstantQuery.ObjectCount = 0 then
+            CreateProfiles;
+
+          //Create Users
+          LInstantQuery.Command := 'SELECT * FROM TUser';
+          LInstantQuery.Open;
+          if LInstantQuery.ObjectCount = 0 then
+            CreateUsers;
         finally
           LInstantQuery.Free;
         end;
